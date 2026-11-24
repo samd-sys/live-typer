@@ -1,0 +1,102 @@
+{
+  "name": "live-typer",
+  "displayName": "Live Typer",
+  "description": "Types clipboard content character-by-character with realistic human-like speed, dynamic pauses, file creation, auto-scrolling, and instant hotkey controls.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.146.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "livetyper.typeLive",
+        "title": "Live Typer: Start Live Typing"
+      },
+      {
+        "command": "livetyper.createAndType",
+        "title": "Live Typer: Create File and Start Typing"
+      },
+      {
+        "command": "livetyper.togglePause",
+        "title": "Live Typer: Pause/Resume"
+      },
+      {
+        "command": "livetyper.stopLive",
+        "title": "Live Typer: Cancel and Stop"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "livetyper.togglePause",
+        "key": "f12",
+        "when": "livetyper:isTyping"
+      }
+    ],
+    "configuration": {
+      "title": "Live Typer Config",
+      "properties": {
+        "livetyper.wpm": {
+          "type": "integer",
+          "default": 55,
+          "description": "Base typing speed in Words Per Minute (WPM)."
+        },
+        "livetyper.variance": {
+          "type": "number",
+          "default": 0.35,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Keystroke rhythm randomness. Higher values mean more irregular/uneven typing speeds."
+        },
+        "livetyper.errorRate": {
+          "type": "number",
+          "default": 0.015,
+          "minimum": 0,
+          "maximum": 0.1,
+          "description": "Chance of the typist making a typo and immediately backspacing to correct it (e.g., 0.015 = 1.5% chance per character)."
+        },
+        "livetyper.testMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "If enabled, work intervals and pauses use seconds instead of minutes (ideal for testing)."
+        },
+        "livetyper.workDurationMinutes": {
+          "type": "integer",
+          "default": 15,
+          "description": "Duration of active typing before the typist takes a review break (used if Test Mode is disabled)."
+        },
+        "livetyper.breakDurationMinutes": {
+          "type": "integer",
+          "default": 3,
+          "description": "Break duration in minutes where the typist switches documents to review code."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.146.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "24.x",
+    "typescript-eslint": "^8.61.1",
+    "eslint": "^10.5.0",
+    "typescript": "^6.0.3",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0"
+  },
+  "overrides": {
+    "diff": "^8.0.4",
+    "serialize-javascript": "^7.0.6"
+  }
+}
