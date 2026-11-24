@@ -37,8 +37,18 @@
     ],
     "keybindings": [
       {
+        "command": "livetyper.typeLive",
+        "key": "f9",
+        "when": "!livetyper:isTyping"
+      },
+      {
         "command": "livetyper.togglePause",
         "key": "f12",
+        "when": "livetyper:isTyping"
+      },
+      {
+        "command": "livetyper.stopLive",
+        "key": "shift+f9",
         "when": "livetyper:isTyping"
       }
     ],
