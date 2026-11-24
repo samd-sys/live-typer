@@ -3,6 +3,11 @@
   "displayName": "Live Typer",
   "description": "Types clipboard content character-by-character with realistic human-like speed, dynamic pauses, file creation, auto-scrolling, and instant hotkey controls.",
   "version": "0.0.1",
+  "publisher": "samd-sys",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/samd-sys/live-typer.git"
+  },
   "engines": {
     "vscode": "^1.146.0"
   },

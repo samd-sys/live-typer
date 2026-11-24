@@ -1,71 +1,33 @@
-# live-typer README
+# Live Typer
 
-This is the README for your extension "live-typer". After writing up a brief description, we recommend including the following sections.
+Live Typer is a Visual Studio Code extension that types clipboard content character-by-character with highly realistic, human-like speed, dynamic pauses, file creation support, auto-scrolling, and instant hotkey controls.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+- **Hardware Level Typing**: Uses native keyboard simulation to emulate physical keystrokes.
+- **Human-like Speed Simulation**: Simulates typing speeds using a Log-Normal distribution paired with context-aware pauses for operators, brackets, and newlines.
+- **Cognitive Breaks**: Natural hesitations at semicolons, parentheses, or newlines to replicate human thinking pauses.
+- **Auto-Scrolling**: Keeps the cursor dynamically in view without manual scrolling.
+- **File Management**: Automatically create and open a new file or open an existing file in your workspace to start your live typing stream.
+- **Zero-Conflict Hotkey Controls**: Use `F12` to instantly pause and resume typing on the fly. This keybinding is only active when the live typer is running.
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+To run this extension, your workspace environment needs the standard node and compiling dependencies to manage native OS level automation tools.
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+You can customize the extension directly in the VS Code Settings Editor (`Ctrl+,` or `Cmd+,`):
 
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
+* `livetyper.wpm`: Base typing speed in Words Per Minute (WPM). (Default: `55`)
+* `livetyper.variance`: Keystroke rhythm randomness. (Default: `0.35`)
+* `livetyper.errorRate`: Chance of making typos and automatically self-correcting them. (Default: `0.015`)
+* `livetyper.testMode`: Toggle to use seconds instead of minutes for test runs. (Default: `false`)
+* `livetyper.workDurationMinutes`: Time in minutes between scheduled review breaks. (Default: `15`)
+* `livetyper.breakDurationMinutes`: Length of review breaks. (Default: `3`)
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+- Initial release of Live Typer with hardware keyboard simulation, cognitive breaks, auto-scroll, setting integrations, and F12 hotkey controls.
