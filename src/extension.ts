@@ -84,12 +84,11 @@ class HardwareTyper {
         const wrongChar = String.fromCharCode(wrongCharCode);
         
         await keyboard.type(wrongChar);
-        await new Promise(r => setTimeout(r, 80 + Math.random() * 100)); // Realization pause
+        await new Promise(r => setTimeout(r, 80 + Math.random() * 100));
 
-        // Backspace
         await keyboard.pressKey(Key.Backspace);
         await keyboard.releaseKey(Key.Backspace);
-        await new Promise(r => setTimeout(r, 100 + Math.random() * 100)); // Recovery pause
+        await new Promise(r => setTimeout(r, 100 + Math.random() * 100));
 
         return true; 
     }
@@ -117,6 +116,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('setContext', 'livetyper:isTyping', active);
     };
 
+    // Global Interrupt Sleep Tracker
     const responsiveSleep = async (ms: number): Promise<boolean> => {
         let elapsed = 0;
         const slice = 50; 
@@ -133,14 +133,51 @@ export function activate(context: vscode.ExtensionContext) {
         return false;
     };
 
-    // --- SHARED TYPING UTILITY ENGINE ---
-    const runTypingFlow = async (editor: vscode.TextEditor, textToType: string) => {
-        isPaused = false;
-        isStopped = false;
-        updateStatusBar(true, false);
-        setTypingContext(true);
+    // Helper: Selects and smoothly scrolls an alternative file
+    const reviewWorkspaceFile = async (): Promise<boolean> => {
+        const workspaceFiles = await vscode.workspace.findFiles('**/*', '**/node_modules/**');
+        if (workspaceFiles.length === 0) return false;
 
-        // Load Dynamic Configuration Settings from VS Code Panel
+        try {
+            const randomUri = workspaceFiles[Math.floor(Math.random() * workspaceFiles.length)];
+            const doc = await vscode.workspace.openTextDocument(randomUri);
+            const randomEditor = await vscode.window.showTextDocument(doc);
+
+            // Simulate slow scroll down
+            const totalLines = doc.lineCount;
+            const scrollSteps = Math.min(5, Math.floor(totalLines / 3));
+            
+            for (let step = 1; step <= scrollSteps; step++) {
+                if (isStopped) return true;
+                const lineToShow = Math.floor((totalLines / scrollSteps) * step);
+                const pos = new vscode.Position(lineToShow, 0);
+                
+                await randomEditor.revealRange(
+                    new vscode.Range(pos, pos),
+                    vscode.TextEditorRevealType.InCenter
+                );
+                if (await responsiveSleep(1500 + Math.random() * 1500)) return true; // Human reading delay
+            }
+        } catch (err) {}
+        return false;
+    };
+
+    // Helper: Safely creates a new workspace file
+    const createNewFile = async (fileName: string): Promise<vscode.TextEditor | undefined> => {
+        let doc: vscode.TextDocument;
+        if (vscode.workspace.workspaceFolders && fileName.trim() !== '') {
+            const workspaceFolder = vscode.workspace.workspaceFolders[0].uri;
+            const fileUri = vscode.Uri.joinPath(workspaceFolder, fileName);
+            await vscode.workspace.fs.writeFile(fileUri, new Uint8Array());
+            doc = await vscode.workspace.openTextDocument(fileUri);
+        } else {
+            doc = await vscode.workspace.openTextDocument({ language: 'plaintext' });
+        }
+        return await vscode.window.showTextDocument(doc);
+    };
+
+    // --- SHARED TYPING LOOP ---
+    const runTypingFlow = async (editor: vscode.TextEditor, textToType: string) => {
         const config = vscode.workspace.getConfiguration('livetyper');
         const wpm = config.get<number>('wpm', 55);
         const variance = config.get<number>('variance', 0.35);
@@ -151,7 +188,6 @@ export function activate(context: vscode.ExtensionContext) {
 
         const typer = new HardwareTyper({ wpm, variance, errorRate });
 
-        // Calculate break/work intervals
         const workDuration = testMode ? workMinutes * 1000 : workMinutes * 60 * 1000;
         const breakLength = testMode ? breakMinutes * 1000 : breakMinutes * 60 * 1000;
 
@@ -170,33 +206,13 @@ export function activate(context: vscode.ExtensionContext) {
             }
             if (isStopped) break;
 
-            // Check for scheduled Code Review break
+            // Optional scheduled break checks
             const timeSinceLastBreak = Date.now() - lastBreakTime;
             if (timeSinceLastBreak >= workDuration) {
                 const originalUri = editor.document.uri;
                 const originalSelection = editor.selection;
 
-                const workspaceFiles = await vscode.workspace.findFiles('**/*', '**/node_modules/**');
-                const eligibleFiles = workspaceFiles.filter(uri => uri.toString() !== originalUri.toString());
-
-                if (eligibleFiles.length > 0) {
-                    try {
-                        const randomUri = eligibleFiles[Math.floor(Math.random() * eligibleFiles.length)];
-                        const doc = await vscode.workspace.openTextDocument(randomUri);
-                        const randomEditor = await vscode.window.showTextDocument(doc);
-
-                        if (await responsiveSleep(3000)) break;
-                        if (doc.lineCount > 10) {
-                            const midLine = Math.floor(doc.lineCount / 2);
-                            await randomEditor.revealRange(
-                                new vscode.Range(new vscode.Position(midLine, 0), new vscode.Position(midLine, 0)),
-                                vscode.TextEditorRevealType.InCenter
-                            );
-                            if (await responsiveSleep(4000)) break;
-                        }
-                    } catch (err) {}
-                }
-
+                if (await reviewWorkspaceFile()) break;
                 if (await responsiveSleep(breakLength)) break;
 
                 const origDoc = await vscode.workspace.openTextDocument(originalUri);
@@ -211,9 +227,8 @@ export function activate(context: vscode.ExtensionContext) {
             const char = textToType[i];
             const prevChar = i > 0 ? textToType[i - 1] : ' ';
 
-            // Check and process Typo correction
             if (await typer.maybeInjectTypo(editor, char)) {
-                continue; // retry typing correct char on loop rerun
+                continue; 
             }
 
             await typer.typeChar(char);
@@ -226,7 +241,6 @@ export function activate(context: vscode.ExtensionContext) {
                 );
             } catch (e) {}
 
-            // Cognitive pauses
             if ((char === ';' || char === '}' || char === '\n') && Math.random() < 0.25) {
                 if (await responsiveSleep(800 + Math.random() * 1200)) break;
             }
@@ -236,27 +250,10 @@ export function activate(context: vscode.ExtensionContext) {
 
             i++;
         }
-
-        statusBarItem.hide();
-        setTypingContext(false);
     };
 
-    // --- COMMANDS ---
+    // --- MAIN F9 COMMAND ENTRY POINT ---
     const startCmd = vscode.commands.registerCommand('livetyper.typeLive', async () => {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            vscode.window.showInformationMessage('❌ Open a text file first!');
-            return;
-        }
-        let rawText = await vscode.env.clipboard.readText();
-        if (!rawText) {
-            vscode.window.showWarningMessage('⚠️ Clipboard is empty!');
-            return;
-        }
-        await runTypingFlow(editor, rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n'));
-    });
-
-    const createAndTypeCmd = vscode.commands.registerCommand('livetyper.createAndType', async () => {
         let rawText = await vscode.env.clipboard.readText();
         if (!rawText) {
             vscode.window.showWarningMessage('⚠️ Clipboard is empty!');
@@ -264,27 +261,73 @@ export function activate(context: vscode.ExtensionContext) {
         }
         const textToType = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-        const fileName = await vscode.window.showInputBox({
-            prompt: 'Enter name of file to create (e.g., demo.js)',
-            placeHolder: 'demo.js'
-        });
-        if (fileName === undefined) return;
+        // Present Option 2 Menu
+        const selected = await vscode.window.showQuickPick([
+            { label: '📝 Only Type Clipboard', description: 'Start typing into the current file immediately.' },
+            { label: '🔄 Coder\'s Loop', description: 'Reference another file first → Create new file → Type clipboard.' },
+            { label: '🔍 Only Scroll Reference', description: 'Open a random file and scroll through it slowly.' }
+        ], { placeHolder: 'Select your typing action...' });
 
-        let doc: vscode.TextDocument;
-        if (vscode.workspace.workspaceFolders && fileName.trim() !== '') {
-            const workspaceFolder = vscode.workspace.workspaceFolders[0].uri;
-            const fileUri = vscode.Uri.joinPath(workspaceFolder, fileName);
-            await vscode.workspace.fs.writeFile(fileUri, new Uint8Array());
-            doc = await vscode.workspace.openTextDocument(fileUri);
-        } else {
-            doc = await vscode.workspace.openTextDocument({ language: 'plaintext' });
+        if (!selected) return;
+
+        isPaused = false;
+        isStopped = false;
+        updateStatusBar(true, false);
+        setTypingContext(true);
+
+        // SEQUENCE 1: Coder's Loop (Review -> Create -> Type)
+        if (selected.label === '🔄 Coder\'s Loop') {
+            const fileName = await vscode.window.showInputBox({
+                prompt: 'Enter name of file to create for typing (e.g., script.py)',
+                placeHolder: 'demo.js'
+            });
+            if (fileName === undefined) {
+                setTypingContext(false);
+                return;
+            }
+
+            // Step 1: Browse/Scroll a random existing file
+            if (await reviewWorkspaceFile()) {
+                setTypingContext(false);
+                statusBarItem.hide();
+                return;
+            }
+
+            // Step 2: Create file and switch to it
+            const newEditor = await createNewFile(fileName);
+            if (!newEditor) {
+                setTypingContext(false);
+                statusBarItem.hide();
+                return;
+            }
+            if (await responsiveSleep(1500)) {
+                setTypingContext(false);
+                statusBarItem.hide();
+                return;
+            }
+
+            // Step 3: Run Live Typing Loop
+            await runTypingFlow(newEditor, textToType);
+
+        } else if (selected.label === '📝 Only Type Clipboard') {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showInformationMessage('❌ Open a text file first!');
+                setTypingContext(false);
+                statusBarItem.hide();
+                return;
+            }
+            await runTypingFlow(editor, textToType);
+
+        } else if (selected.label === '🔍 Only Scroll Reference') {
+            await reviewWorkspaceFile();
         }
 
-        const editor = await vscode.window.showTextDocument(doc);
-        if (await responsiveSleep(500)) return;
-        await runTypingFlow(editor, textToType);
+        statusBarItem.hide();
+        setTypingContext(false);
     });
 
+    // --- PAUSE & STOP COMMANDS ---
     const pauseCmd = vscode.commands.registerCommand('livetyper.togglePause', () => {
         isPaused = !isPaused;
         updateStatusBar(true, isPaused);
@@ -297,7 +340,7 @@ export function activate(context: vscode.ExtensionContext) {
         setTypingContext(false);
     });
 
-    context.subscriptions.push(startCmd, createAndTypeCmd, pauseCmd, stopCmd);
+    context.subscriptions.push(startCmd, pauseCmd, stopCmd);
 }
 
 function updateStatusBar(isRunning: boolean, paused: boolean) {

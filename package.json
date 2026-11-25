@@ -23,10 +23,6 @@
         "title": "Live Typer: Start Live Typing"
       },
       {
-        "command": "livetyper.createAndType",
-        "title": "Live Typer: Create File and Start Typing"
-      },
-      {
         "command": "livetyper.togglePause",
         "title": "Live Typer: Pause/Resume"
       },
